@@ -4,57 +4,19 @@ import 'package:edencrew_assignment_starter/domain/stock/entity/daily_price.dart
 import 'package:edencrew_assignment_starter/theme/theme.dart';
 import 'package:flutter/material.dart';
 
-class CandleChart extends StatefulWidget {
+class CandleChart extends StatelessWidget {
   const CandleChart({super.key, required this.prices});
 
   final List<DailyPrice> prices;
 
   @override
-  State<CandleChart> createState() => _CandleChartState();
-}
-
-class _CandleChartState extends State<CandleChart>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 320),
-  )..forward();
-
-  @override
-  void didUpdateWidget(covariant CandleChart oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.prices != widget.prices) {
-      _controller
-        ..value = 0
-        ..forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '${widget.prices.length}거래일 캔들 차트. 상세 가격은 아래 일별 시세 표에서 확인하세요.',
+      label: '${prices.length}거래일 캔들 차트. 상세 가격은 아래 일별 시세 표에서 확인하세요.',
       child: SizedBox(
         height: 200,
         width: double.infinity,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) => FadeTransition(
-            opacity: CurvedAnimation(
-              parent: _controller,
-              curve: Curves.easeOut,
-            ),
-            child: CustomPaint(
-              painter: _Candles(widget.prices, context.colors),
-            ),
-          ),
-        ),
+        child: CustomPaint(painter: _Candles(prices, context.colors)),
       ),
     );
   }

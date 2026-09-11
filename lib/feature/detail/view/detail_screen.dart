@@ -82,16 +82,14 @@ class DetailScreen extends StatelessWidget {
                       color: context.colors.accentDefault,
                       backgroundColor: context.colors.surfaceRaised,
                     ),
-                  if (detail.errorMessage != null)
-                    ErrorNotice(
-                      message: detail.errorMessage!,
-                      retry: () => onPeriod(detail.period),
-                    ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: prices.isNotEmpty
-                        ? CandleChart(prices: prices)
-                        : _EmptyChart(phase: detail.phase),
+                    child: _ChartPanel(
+                      prices: prices,
+                      phase: detail.phase,
+                      errorMessage: detail.errorMessage,
+                      onRetry: () => onPeriod(detail.period),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Padding(
@@ -392,6 +390,64 @@ class _PeriodChip extends StatelessWidget {
   }
 }
 
+class _ChartPanel extends StatelessWidget {
+  const _ChartPanel({
+    required this.prices,
+    required this.phase,
+    required this.errorMessage,
+    required this.onRetry,
+  });
+
+  final List<DailyPrice> prices;
+  final LoadPhase phase;
+  final String? errorMessage;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget content;
+    final ValueKey<String> key;
+    if (errorMessage != null && prices.isEmpty) {
+      key = const ValueKey('error');
+      content = ErrorNotice(message: errorMessage!, retry: onRetry);
+    } else if (prices.isNotEmpty) {
+      key = const ValueKey('chart');
+      content = CandleChart(prices: prices);
+    } else {
+      key = ValueKey(phase == LoadPhase.loading ? 'loading' : 'empty');
+      content = _EmptyChart(phase: phase);
+    }
+
+    return SizedBox(
+      height: 200,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 240),
+        reverseDuration: const Duration(milliseconds: 160),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final offset = Tween<Offset>(
+            begin: const Offset(0, .025),
+            end: Offset.zero,
+          ).animate(animation);
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(position: offset, child: child),
+          );
+        },
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          alignment: Alignment.center,
+          children: [
+            ...previousChildren,
+            ?currentChild,
+          ],
+        ),
+        child: KeyedSubtree(key: key, child: content),
+      ),
+    );
+  }
+}
+
 class _EmptyChart extends StatelessWidget {
   const _EmptyChart({required this.phase});
 
@@ -399,13 +455,10 @@ class _EmptyChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 200,
-      child: Center(
-        child: Text(
-          phase == LoadPhase.loading ? '일별 시세를 불러오는 중입니다' : '표시할 일별 시세가 없습니다',
-          style: TextStyle(fontSize: 12, color: context.colors.textDisabled),
-        ),
+    return Center(
+      child: Text(
+        phase == LoadPhase.loading ? '일별 시세를 불러오는 중입니다' : '표시할 일별 시세가 없습니다',
+        style: TextStyle(fontSize: 12, color: context.colors.textDisabled),
       ),
     );
   }

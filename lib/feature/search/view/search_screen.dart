@@ -141,63 +141,182 @@ class _SearchScreenState extends State<SearchScreen> {
             retry: () => widget.onQuery(search.query),
           ),
         Expanded(
-          child: !search.hasQuery
-              ? const EmptyContent(
-                  icon: StockIconType.search,
-                  title: '종목을 검색해 보세요',
-                  message: '종목명 또는 종목코드 6자리로\n검색하실 수 있습니다.',
-                )
-              : search.phase == LoadPhase.loaded && widget.results.isEmpty
-              ? EmptyContent(
-                  icon: StockIconType.searchOff,
-                  title: '검색 결과가 없습니다',
-                  message: "‘${search.query}'와\n일치하는 검색 결과를 찾지 못했습니다.",
-                )
-              : ListView.builder(
-                  key: const PageStorageKey('search-results'),
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  itemCount: widget.results.length,
-                  itemBuilder: (context, index) {
-                    final stock = widget.results[index];
-                    return InkWell(
-                      onTap: () {
-                        FocusScope.of(context).unfocus();
-                        widget.onOpen(stock);
-                      },
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: 60),
-                        padding: EdgeInsets.only(
-                          left: context.dimens.space4,
-                          right:
-                              context.dimens.space1 +
-                              context.dimens.borderHairline,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: context.dimens.space3,
-                                ),
-                                child: StockIdentity(
-                                  stock: stock,
-                                  query: search.query,
-                                ),
-                              ),
-                            ),
-                            FavoriteButton(
-                              selected: widget.favoriteIds.contains(stock.id),
-                              onPressed: () => widget.onFavorite(stock),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            reverseDuration: const Duration(milliseconds: 150),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+            layoutBuilder: (currentChild, previousChildren) => Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                ...previousChildren,
+                ?currentChild,
+              ],
+            ),
+            child: _SearchResultsContent(
+              key: ValueKey(
+                '${search.hasQuery}_${search.phase}_${widget.results.length}',
+              ),
+              search: search,
+              results: widget.results,
+              favoriteIds: widget.favoriteIds,
+              onFavorite: widget.onFavorite,
+              onOpen: widget.onOpen,
+            ),
+          ),
         ),
       ],
     );
   }
+}
+
+class _SearchResultsContent extends StatelessWidget {
+  const _SearchResultsContent({
+    super.key,
+    required this.search,
+    required this.results,
+    required this.favoriteIds,
+    required this.onFavorite,
+    required this.onOpen,
+  });
+
+  final SearchState search;
+  final List<Stock> results;
+  final Set<String> favoriteIds;
+  final ValueChanged<Stock> onFavorite;
+  final ValueChanged<Stock> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!search.hasQuery) {
+      return const EmptyContent(
+        icon: StockIconType.search,
+        title: '종목을 검색해 보세요',
+        message: '종목명 또는 종목코드 6자리로\n검색하실 수 있습니다.',
+      );
+    }
+    if (search.phase == LoadPhase.loading ||
+        search.phase == LoadPhase.refreshing) {
+      return const _SearchResultSkeletonList();
+    }
+    if (search.phase == LoadPhase.loaded && results.isEmpty) {
+      return EmptyContent(
+        icon: StockIconType.searchOff,
+        title: '검색 결과가 없습니다',
+        message: "‘${search.query}'와\n일치하는 검색 결과를 찾지 못했습니다.",
+      );
+    }
+    if (search.phase == LoadPhase.failed && results.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return ListView.builder(
+      key: const PageStorageKey('search-results'),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final stock = results[index];
+        return InkWell(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            onOpen(stock);
+          },
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 60),
+            padding: EdgeInsets.only(
+              left: context.dimens.space4,
+              right: context.dimens.space1 + context.dimens.borderHairline,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: context.dimens.space3,
+                    ),
+                    child: StockIdentity(stock: stock, query: search.query),
+                  ),
+                ),
+                FavoriteButton(
+                  selected: favoriteIds.contains(stock.id),
+                  onPressed: () => onFavorite(stock),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SearchResultSkeletonList extends StatelessWidget {
+  const _SearchResultSkeletonList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      key: const PageStorageKey('search-result-skeleton'),
+      itemCount: 6,
+      itemBuilder: (context, index) => const _SearchResultSkeletonRow(),
+    );
+  }
+}
+
+class _SearchResultSkeletonRow extends StatelessWidget {
+  const _SearchResultSkeletonRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '검색 결과 불러오는 중',
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 60),
+        padding: EdgeInsets.symmetric(
+          horizontal: context.dimens.space4,
+          vertical: context.dimens.space3,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SkeletonBar(width: 112, height: 14),
+                  SizedBox(height: context.dimens.space1),
+                  _SkeletonBar(width: 64, height: 11),
+                ],
+              ),
+            ),
+            _SkeletonBar(width: 22, height: 22, radius: 11),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonBar extends StatelessWidget {
+  const _SkeletonBar({
+    required this.width,
+    required this.height,
+    this.radius = 4,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      color: context.colors.feedbackSkeleton,
+      borderRadius: BorderRadius.circular(radius),
+    ),
+  );
 }
