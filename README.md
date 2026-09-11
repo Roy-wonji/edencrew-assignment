@@ -60,6 +60,43 @@ Flutter 테스트 40개와 `flutter analyze`를 통과했고, `flutter build mac
 
 ## 아키텍처
 
-`View → Action → Reducer → State → View` 단방향 흐름을 사용했습니다. `AppStore`가 관심·검색·상세 상태를 함께 보유하고, 각 기능의 Reducer가 자신의 상태 전환만 담당합니다. 네트워크 요청과 타이머는 `EffectRunner`가 실행하며 View가 저장소나 컨테이너를 직접 조회하지 않습니다.
+`View → Action → Reducer → State → View` 단방향 흐름을 사용합니다. `AppStore`가 관심·검색·상세 상태를 함께 보유하고, 각 기능의 Reducer는 자신의 상태 전환만 담당합니다. 네트워크 요청과 타이머는 `EffectRunner`가 실행합니다.
 
-폴더는 `app`, `feature`, `domain`, `service`, `core`, `shared`, `theme`으로 나눴습니다. `domain`은 종목 모델과 저장소 인터페이스, `service`는 Naver 응답 파싱, `feature`는 화면별 Action·Reducer·State·View, `shared`는 재사용 UI를 담당합니다. `get_it`은 앱 조립 시점의 의존성 주입에만 사용해 테스트에서 가짜 저장소와 시간을 주입할 수 있도록 했습니다.
+```mermaid
+flowchart LR
+    View[View] -->|사용자 입력| Action[Action]
+    Action --> Store[AppStore]
+    Store --> Reducer[Feature Reducer]
+    Reducer --> State[App / Feature State]
+    State -->|상태 구독| View
+    Reducer -->|Effect| Runner[EffectRunner]
+    Runner -->|API / Timer 결과| Action
+```
+
+### 폴더와 의존성 흐름
+
+```text
+lib/
+├── app/       # 앱 진입점, AppStore, 루트 Action·Reducer·State
+├── feature/   # 관심·검색·상세 화면과 기능별 상태 전환
+├── domain/    # 종목 모델, Repository 계약, UseCase
+├── service/   # Naver API 요청과 응답 파싱
+├── core/      # 네트워크, 시간, 공통 상태 기반
+├── shared/    # 재사용 UI와 포맷팅
+└── theme/     # 색상, 타이포그래피, 간격 토큰
+```
+
+```mermaid
+flowchart TD
+    App[app] --> Feature[feature]
+    App --> Domain[domain]
+    App --> Service[service]
+    Feature --> Domain
+    Feature --> Shared[shared]
+    Feature --> Theme[theme]
+    Service --> Domain
+    Service --> Core[core]
+    Shared --> Theme
+```
+
+`get_it`은 앱 조립 시점의 의존성 주입에만 사용합니다. View와 Reducer는 컨테이너를 직접 조회하지 않으며, 테스트에서는 Repository와 시간을 가짜 구현으로 교체할 수 있습니다.
