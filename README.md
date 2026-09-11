@@ -53,3 +53,15 @@
 ## 검증
 
 Flutter 테스트 40개와 `flutter analyze`를 통과했습니다. 393×852 기준 관심·검색·상세 및 빈 상태·정렬·토스트 렌더링을 확인했습니다. 실제 Naver 응답 샘플은 `assets/mock`에 보관했습니다.
+
+## 디자인 토큰 사용 방식
+
+색상·간격·반경·타이포그래피는 `lib/theme`에 있는 공통 토큰을 기준으로 사용했습니다. 화면에서는 색상 값을 직접 만들지 않고 `context.colors`와 `context.typography`를 통해 `surface`, `textPrimary`, `priceUpText`, `priceDownText`, `feedbackSkeleton` 같은 의미 기반 토큰을 참조합니다. 간격과 모서리 반경은 `AppDimens`로 통일했고, 공통 행·검색 필드·토스트·빈 상태·스켈레톤은 `lib/shared/design_system/stock_widgets.dart`에서 재사용합니다.
+
+스켈레톤은 시세 요청 중인 종목 코드만 상태에 기록하고, 해당 행의 실제 값 영역을 `QuoteSkeleton`으로 대체합니다. 상세 화면도 같은 상태를 사용해 현재가 영역에 동일한 스켈레톤을 표시하므로 로딩 표현이 화면마다 달라지지 않습니다.
+
+## 아키텍처
+
+`View → Action → Reducer → State → View` 단방향 흐름을 사용했습니다. `AppStore`가 관심·검색·상세 상태를 함께 보유하고, 각 기능의 Reducer가 자신의 상태 전환만 담당합니다. 네트워크 요청과 타이머는 `EffectRunner`가 실행하며 View가 저장소나 컨테이너를 직접 조회하지 않습니다.
+
+폴더는 `app`, `feature`, `domain`, `service`, `core`, `shared`, `theme`으로 나눴습니다. `domain`은 종목 모델과 저장소 인터페이스, `service`는 Naver 응답 파싱, `feature`는 화면별 Action·Reducer·State·View, `shared`는 재사용 UI를 담당합니다. `get_it`은 앱 조립 시점의 의존성 주입에만 사용해 테스트에서 가짜 저장소와 시간을 주입할 수 있도록 했습니다.
