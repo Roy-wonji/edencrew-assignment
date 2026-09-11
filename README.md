@@ -33,7 +33,7 @@
 
 - 과제 2 Lucy Studio `targetAlert` 화면 및 `cloneProject/assets` 압축 파일은 별도 제출물로 준비 중입니다.
 - 관심 목록의 앱 재실행 후 영구 저장과 검색 debounce는 구현하지 않았습니다.
-- macOS debug 빌드와 iPhone 17 시뮬레이터 설치·실행을 확인했습니다. iOS 빌드는 `flutter build ios --simulator --debug`로 검증했습니다.
+- macOS debug 빌드, Android debug APK 빌드, iPhone 17 시뮬레이터 설치·실행을 확인했습니다. iOS 빌드는 `flutter build ios --simulator --debug`, Android는 `flutter build apk --debug`로 검증했습니다.
 
 ## 기술 선택과 이유
 
@@ -50,7 +50,7 @@
 
 ## 검증
 
-Flutter 테스트 40개와 `flutter analyze`를 통과했고, `flutter build macos --debug`와 `flutter build ios --simulator --debug`가 모두 성공했습니다. 393×852 기준 관심·검색·상세 및 빈 상태·정렬·토스트 렌더링을 확인했습니다. 실제 Naver 응답 샘플은 `assets/mock`에 보관했습니다.
+Flutter 테스트 40개와 `flutter analyze`를 통과했고, `flutter build macos --debug`, `flutter build ios --simulator --debug`, `flutter build apk --debug`가 모두 성공했습니다. 393×852 기준 관심·검색·상세 및 빈 상태·정렬·토스트 렌더링을 확인했습니다. 실제 Naver 응답 샘플은 `assets/mock`에 보관했습니다.
 
 ## 디자인 토큰 사용 방식
 
