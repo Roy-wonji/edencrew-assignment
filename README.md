@@ -31,7 +31,7 @@
 
 ### 남은 작업
 
-- 과제 2 Lucy Studio `targetAlert` 화면 및 `cloneProject/assets` 압축 파일은 별도 제출물로 준비 중입니다.
+- 과제 2 Lucy Studio `targetAlert` 화면과 `cloneProject/assets` 압축 파일은 별도 첨부 제출물로 준비했습니다.
 - 관심 목록의 앱 재실행 후 영구 저장과 검색 debounce는 구현하지 않았습니다.
 - macOS debug 빌드, Android debug APK 빌드, iPhone 17 시뮬레이터 설치·실행을 확인했습니다. iOS 빌드는 `flutter build ios --simulator --debug`, Android는 `flutter build apk --debug`로 검증했습니다.
 
