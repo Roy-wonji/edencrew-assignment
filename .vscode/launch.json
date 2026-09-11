@@ -2,10 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "관심종목 앱",
+      "name": "관심종목 앱 · iPhone 17",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart"
+      "program": "lib/main.dart",
+      "deviceId": "03ADC29D-A84B-4F86-872D-D5B2796A8765"
     }
   ]
 }
