@@ -85,6 +85,7 @@ class DetailScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: _ChartPanel(
+                      stockId: stock.id,
                       prices: prices,
                       phase: detail.phase,
                       errorMessage: detail.errorMessage,
@@ -364,23 +365,31 @@ class _PeriodChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? context.colors.accentBg : Colors.transparent,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: SizedBox(
-          width: width,
-          height: 28,
-          child: Center(
-            child: Text(
-              period.label,
-              style: TextStyle(
-                color: selected
-                    ? context.colors.accentDefault
-                    : context.colors.textSecondary,
-                fontSize: 13,
-                height: 18 / 13,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: selected ? context.colors.accentBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: SizedBox(
+            width: width,
+            height: 28,
+            child: Center(
+              child: Text(
+                period.label,
+                style: TextStyle(
+                  color: selected
+                      ? context.colors.accentDefault
+                      : context.colors.textSecondary,
+                  fontSize: 13,
+                  height: 18 / 13,
+                ),
               ),
             ),
           ),
@@ -390,32 +399,74 @@ class _PeriodChip extends StatelessWidget {
   }
 }
 
-class _ChartPanel extends StatelessWidget {
+class _ChartPanel extends StatefulWidget {
   const _ChartPanel({
+    required this.stockId,
     required this.prices,
     required this.phase,
     required this.errorMessage,
     required this.onRetry,
   });
 
+  final String stockId;
   final List<DailyPrice> prices;
   final LoadPhase phase;
   final String? errorMessage;
   final VoidCallback onRetry;
 
   @override
+  State<_ChartPanel> createState() => _ChartPanelState();
+}
+
+class _ChartPanelState extends State<_ChartPanel> {
+  List<DailyPrice> _cachedPrices = const <DailyPrice>[];
+  String? _cachedStockId;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedStockId = widget.stockId;
+    _cachedPrices = widget.prices;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChartPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_cachedStockId != widget.stockId) {
+      _cachedStockId = widget.stockId;
+      _cachedPrices = const <DailyPrice>[];
+    }
+    if (widget.prices.isNotEmpty) {
+      _cachedPrices = widget.prices;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final prices = widget.prices;
+    final displayPrices = prices.isNotEmpty ? prices : _cachedPrices;
+    final isLoading =
+        widget.phase == LoadPhase.loading ||
+        widget.phase == LoadPhase.refreshing;
     final Widget content;
     final ValueKey<String> key;
-    if (errorMessage != null && prices.isEmpty) {
+    if (widget.errorMessage != null && prices.isEmpty) {
       key = const ValueKey('error');
-      content = ErrorNotice(message: errorMessage!, retry: onRetry);
-    } else if (prices.isNotEmpty) {
+      content = ErrorNotice(
+        message: widget.errorMessage!,
+        retry: widget.onRetry,
+      );
+    } else if (displayPrices.isNotEmpty) {
       key = const ValueKey('chart');
-      content = CandleChart(prices: prices);
+      content = AnimatedOpacity(
+        opacity: isLoading ? .62 : 1,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        child: CandleChart(prices: displayPrices),
+      );
     } else {
-      key = ValueKey(phase == LoadPhase.loading ? 'loading' : 'empty');
-      content = _EmptyChart(phase: phase);
+      key = ValueKey(isLoading ? 'loading' : 'empty');
+      content = _EmptyChart(phase: widget.phase);
     }
 
     return SizedBox(
@@ -437,10 +488,7 @@ class _ChartPanel extends StatelessWidget {
         },
         layoutBuilder: (currentChild, previousChildren) => Stack(
           alignment: Alignment.center,
-          children: [
-            ...previousChildren,
-            ?currentChild,
-          ],
+          children: [...previousChildren, ?currentChild],
         ),
         child: KeyedSubtree(key: key, child: content),
       ),
