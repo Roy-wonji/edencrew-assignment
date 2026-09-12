@@ -31,6 +31,18 @@ class _SearchScreenState extends State<SearchScreen> {
     text: widget.state.query,
   );
   @override
+  void didUpdateWidget(covariant SearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.state.query != _controller.text) {
+      _controller.value = _controller.value.copyWith(
+        text: widget.state.query,
+        selection: TextSelection.collapsed(offset: widget.state.query.length),
+        composing: TextRange.empty,
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -61,6 +73,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               textInputAction: TextInputAction.search,
               onChanged: widget.onQuery,
+              onSubmitted: widget.onQuery,
               decoration: InputDecoration(
                 hintText: '종목명 또는 종목코드',
                 hintStyle: TextStyle(
@@ -146,16 +159,11 @@ class _SearchScreenState extends State<SearchScreen> {
             reverseDuration: const Duration(milliseconds: 150),
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: child,
-            ),
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
             layoutBuilder: (currentChild, previousChildren) => Stack(
               alignment: Alignment.topCenter,
-              children: [
-                ...previousChildren,
-                ?currentChild,
-              ],
+              children: [...previousChildren, ?currentChild],
             ),
             child: _SearchResultsContent(
               key: ValueKey(
@@ -165,6 +173,7 @@ class _SearchScreenState extends State<SearchScreen> {
               results: widget.results,
               favoriteIds: widget.favoriteIds,
               onFavorite: widget.onFavorite,
+              onQuery: widget.onQuery,
               onOpen: widget.onOpen,
             ),
           ),
@@ -181,6 +190,7 @@ class _SearchResultsContent extends StatelessWidget {
     required this.results,
     required this.favoriteIds,
     required this.onFavorite,
+    required this.onQuery,
     required this.onOpen,
   });
 
@@ -188,11 +198,18 @@ class _SearchResultsContent extends StatelessWidget {
   final List<Stock> results;
   final Set<String> favoriteIds;
   final ValueChanged<Stock> onFavorite;
+  final ValueChanged<String> onQuery;
   final ValueChanged<Stock> onOpen;
 
   @override
   Widget build(BuildContext context) {
     if (!search.hasQuery) {
+      if (search.recentSearches.isNotEmpty) {
+        return _RecentSearches(
+          queries: search.recentSearches,
+          onQuery: onQuery,
+        );
+      }
       return const EmptyContent(
         icon: StockIconType.search,
         title: '종목을 검색해 보세요',
@@ -249,6 +266,64 @@ class _SearchResultsContent extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _RecentSearches extends StatelessWidget {
+  const _RecentSearches({required this.queries, required this.onQuery});
+
+  final List<String> queries;
+  final ValueChanged<String> onQuery;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      key: const PageStorageKey('recent-searches'),
+      padding: EdgeInsets.symmetric(horizontal: context.dimens.space4),
+      children: [
+        SizedBox(height: context.dimens.space2),
+        Text(
+          '최근 검색어',
+          style: TextStyle(
+            color: context.colors.textSecondary,
+            fontSize: 13,
+            height: 18 / 13,
+            fontWeight: AppTypography.bold,
+          ),
+        ),
+        SizedBox(height: context.dimens.space2),
+        for (final query in queries)
+          InkWell(
+            onTap: () => onQuery(query),
+            child: SizedBox(
+              height: 44,
+              child: Row(
+                children: [
+                  StockIcon(
+                    StockIconType.search,
+                    color: context.colors.textTertiary,
+                    size: context.dimens.iconSm,
+                  ),
+                  SizedBox(width: context.dimens.space3),
+                  Expanded(
+                    child: Text(
+                      query,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontSize: 15,
+                        height: 20 / 15,
+                        fontWeight: AppTypography.medium,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

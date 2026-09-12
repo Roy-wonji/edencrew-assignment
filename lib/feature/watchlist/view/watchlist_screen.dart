@@ -15,6 +15,7 @@ class WatchlistScreen extends StatelessWidget {
     required this.onRefresh,
     required this.onSort,
     required this.onOpen,
+    required this.onRemove,
     this.errorMessage,
   });
   final List<Stock> stocks;
@@ -25,6 +26,7 @@ class WatchlistScreen extends StatelessWidget {
   final VoidCallback onRefresh;
   final ValueChanged<WatchlistSort> onSort;
   final ValueChanged<Stock> onOpen;
+  final ValueChanged<Stock> onRemove;
 
   void _showSort(BuildContext context) {
     showModalBottomSheet<void>(
@@ -197,68 +199,105 @@ class WatchlistScreen extends StatelessWidget {
         if (errorMessage != null && stocks.isNotEmpty)
           ErrorNotice(message: errorMessage!, retry: onRefresh),
         Expanded(
-          child: stocks.isEmpty
-              ? const EmptyContent(
-                  icon: StockIconType.star,
-                  title: '관심 종목이 없습니다',
-                  message: '검색 탭에서 종목을 찾아\n별 아이콘을 눌러 추가해 주세요.',
-                )
-              : ListView.builder(
-                  itemCount: stocks.length,
-                  itemBuilder: (context, index) {
-                    final stock = stocks[index];
-                    final quote = quotes[stock.symbol];
-                    return InkWell(
-                      onTap: () => onOpen(stock),
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: 60),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: context.dimens.space4,
-                          vertical: context.dimens.space3,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(child: StockIdentity(stock: stock)),
-                            SizedBox(width: context.dimens.space3),
-                            if (quote != null)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    number(quote.current),
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      height: 20 / 15,
-                                      fontWeight: AppTypography.medium,
-                                      color: context.colors.textPrimary,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${signedNumber(quote.change)} (${percent(quote.changeRate)})',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      height: 14 / 11,
-                                      color: changeColor(context, quote.change),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else if (loadingSymbols.contains(stock.symbol))
-                              const QuoteSkeleton()
-                            else
-                              Text(
-                                '시세 없음',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: context.colors.textDisabled,
-                                ),
-                              ),
-                          ],
-                        ),
+          child: RefreshIndicator(
+            color: context.colors.accentDefault,
+            backgroundColor: context.colors.surfaceOverlay,
+            onRefresh: () async => onRefresh(),
+            child: stocks.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 128),
+                      EmptyContent(
+                        icon: StockIconType.star,
+                        title: '관심 종목이 없습니다',
+                        message: '검색 탭에서 종목을 찾아\n별 아이콘을 눌러 추가해 주세요.',
                       ),
-                    );
-                  },
-                ),
+                    ],
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: stocks.length,
+                    itemBuilder: (context, index) {
+                      final stock = stocks[index];
+                      final quote = quotes[stock.symbol];
+                      return Dismissible(
+                        key: ValueKey('watchlist-${stock.id}'),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: context.colors.priceDownBg,
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(
+                            right: context.dimens.space4,
+                          ),
+                          child: const StockIcon(
+                            StockIconType.close,
+                            size: 22,
+                            color: Colors.white,
+                          ),
+                        ),
+                        onDismissed: (_) => onRemove(stock),
+                        child: InkWell(
+                          onTap: () => onOpen(stock),
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 60),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.dimens.space4,
+                              vertical: context.dimens.space3,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(child: StockIdentity(stock: stock)),
+                                SizedBox(width: context.dimens.space3),
+                                if (quote != null)
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        number(quote.current),
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          height: 20 / 15,
+                                          fontWeight: AppTypography.medium,
+                                          color: context.colors.textPrimary,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${signedNumber(quote.change)} (${percent(quote.changeRate)})',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          height: 14 / 11,
+                                          color: changeColor(
+                                            context,
+                                            quote.change,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else if (loadingSymbols.contains(stock.symbol))
+                                  const QuoteSkeleton()
+                                else
+                                  Text(
+                                    '시세 없음',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: context.colors.textDisabled,
+                                    ),
+                                  ),
+                                SizedBox(width: context.dimens.space3),
+                                FavoriteButton(
+                                  selected: true,
+                                  onPressed: () => onRemove(stock),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ),
       ],
     );
