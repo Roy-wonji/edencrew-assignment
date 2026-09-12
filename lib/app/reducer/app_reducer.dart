@@ -1,5 +1,6 @@
 import 'package:edencrew_assignment_starter/app/effect/app_effect.dart';
 import 'package:edencrew_assignment_starter/app/state/app_state.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/core/state/app_action.dart';
 import 'package:edencrew_assignment_starter/domain/stock/entity/models.dart';
 import 'package:edencrew_assignment_starter/feature/detail/action/detail_action.dart';
@@ -37,15 +38,20 @@ final class ComposedAppReducer {
   ReduceResult call(AppState state, AppAction action) {
     switch (action) {
       case AppStarted():
-        return _refreshFavorites(state);
+        return ReduceResult(state, const <AppEffect>[LoadPreferencesEffect()]);
+      case PreferencesLoaded(:final snapshot):
+        return _preferencesLoaded(state, snapshot);
       case AppTabSelected(:final tab):
         return ReduceResult(state.copyWith(selectedTab: tab));
       case WatchlistRefreshRequested():
         return _refreshFavorites(state);
       case WatchlistAction():
-        return ReduceResult(
-          state.copyWith(watchlistSort: watchlist(state.watchlistSort, action)),
+        final nextState = state.copyWith(
+          watchlistSort: watchlist(state.watchlistSort, action),
         );
+        return ReduceResult(nextState, <AppEffect>[
+          SavePreferencesEffect(nextState.preferencesSnapshot),
+        ]);
       case FavoriteToggled(:final stock, :final source):
         return _toggleFavorite(state, stock, source);
       case QuotesSucceeded(
@@ -81,6 +87,10 @@ final class ComposedAppReducer {
         );
       case DetailPeriodSelected(:final period):
         return _selectDetailPeriod(state, action, period);
+      case DetailDailyPricesMoreRequested():
+        return ReduceResult(
+          state.copyWith(detail: detail(state.detail, action)),
+        );
       case DetailHistoryUpdated():
         return ReduceResult(
           state.copyWith(detail: detail(state.detail, action)),
@@ -97,6 +107,27 @@ final class ComposedAppReducer {
     }
 
     return ReduceResult(state);
+  }
+
+  ReduceResult _preferencesLoaded(
+    AppState state,
+    AppPreferencesSnapshot snapshot,
+  ) {
+    final stocksById = <String, Stock>{...state.stocksById};
+    for (final stock in snapshot.favoriteStocks) {
+      stocksById[stock.id] = stock;
+    }
+    final nextState = state.copyWith(
+      stocksById: stocksById,
+      favoriteIds: snapshot.favoriteStocks.map((stock) => stock.id).toSet(),
+      watchlistSort: snapshot.watchlistSort,
+      search: state.search.copyWith(recentSearches: snapshot.recentSearches),
+    );
+    final refreshed = _refreshFavorites(nextState);
+    return ReduceResult(refreshed.state, <AppEffect>[
+      ...refreshed.effects,
+      SavePreferencesEffect(refreshed.state.preferencesSnapshot),
+    ]);
   }
 
   ReduceResult _refreshFavorites(AppState state) {
@@ -182,6 +213,7 @@ final class ComposedAppReducer {
       effects.add(DismissNoticeEffect(noticeId));
     }
 
+    effects.add(SavePreferencesEffect(nextState.preferencesSnapshot));
     return ReduceResult(nextState, effects);
   }
 
@@ -269,7 +301,9 @@ final class ComposedAppReducer {
   ) {
     final search = this.search(state.search, action);
     if (query.trim().isEmpty) {
-      return ReduceResult(state.copyWith(search: search));
+      return ReduceResult(state.copyWith(search: search), const <AppEffect>[
+        CancelSearchEffect(),
+      ]);
     }
 
     return ReduceResult(state.copyWith(search: search), <AppEffect>[
@@ -292,7 +326,10 @@ final class ComposedAppReducer {
       stocksById[stock.id] = stock;
     }
 
-    return ReduceResult(state.copyWith(stocksById: stocksById, search: search));
+    final nextState = state.copyWith(stocksById: stocksById, search: search);
+    return ReduceResult(nextState, <AppEffect>[
+      SavePreferencesEffect(nextState.preferencesSnapshot),
+    ]);
   }
 
   ReduceResult _openDetail(AppState state, DetailOpened action, Stock stock) {

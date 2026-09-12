@@ -6,6 +6,7 @@ final class SearchState {
     this.phase = LoadPhase.idle,
     this.requestId = 0,
     this.resultIds = const <String>[],
+    this.recentSearches = const <String>[],
     this.errorMessage,
   });
 
@@ -13,6 +14,7 @@ final class SearchState {
   final LoadPhase phase;
   final int requestId;
   final List<String> resultIds;
+  final List<String> recentSearches;
   final String? errorMessage;
 
   bool get hasQuery => query.trim().isNotEmpty;
@@ -22,6 +24,7 @@ final class SearchState {
     LoadPhase? phase,
     int? requestId,
     List<String>? resultIds,
+    List<String>? recentSearches,
     String? errorMessage,
     bool clearErrorMessage = false,
   }) {
@@ -30,6 +33,9 @@ final class SearchState {
       phase: phase ?? this.phase,
       requestId: requestId ?? this.requestId,
       resultIds: List<String>.unmodifiable(resultIds ?? this.resultIds),
+      recentSearches: List<String>.unmodifiable(
+        recentSearches ?? this.recentSearches,
+      ),
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,

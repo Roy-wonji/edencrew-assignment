@@ -1,6 +1,7 @@
 import 'package:edencrew_assignment_starter/app/effect/effect_runner.dart';
 import 'package:edencrew_assignment_starter/app/store/app_store.dart';
 import 'package:edencrew_assignment_starter/core/network/stock_http_client.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/core/time/clock.dart';
 import 'package:edencrew_assignment_starter/core/time/scheduler.dart';
 import 'package:edencrew_assignment_starter/domain/domain_assembly.dart';
@@ -46,6 +47,7 @@ AppComposition bootstrapApp({
   StockHttpClient? httpClient,
   AppClock clock = const SystemClock(),
   AppScheduler scheduler = const TimerScheduler(),
+  AppPreferences preferences = const SharedPreferencesAppPreferences(),
 }) {
   final container = GetIt.asNewInstance();
   CoreAssembly.register(container, clock: clock, scheduler: scheduler);
@@ -59,6 +61,7 @@ AppComposition bootstrapApp({
     effectRunner: AppEffectRunner(
       repository: container<StockRepository>(),
       scheduler: container<AppScheduler>(),
+      preferences: preferences,
     ),
     reducer: ComposedAppReducer(
       search: container<SearchReducer>(),

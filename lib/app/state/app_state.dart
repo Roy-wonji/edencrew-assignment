@@ -1,4 +1,5 @@
 import 'package:edencrew_assignment_starter/domain/stock/use_case/sort_watchlist.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/domain/stock/entity/models.dart';
 import 'package:edencrew_assignment_starter/feature/detail/state/detail_state.dart';
 import 'package:edencrew_assignment_starter/feature/search/state/search_state.dart';
@@ -41,6 +42,12 @@ final class AppState {
   final String? metadataErrorMessage;
 
   Stock? stockById(String id) => stocksById[id];
+
+  AppPreferencesSnapshot get preferencesSnapshot => AppPreferencesSnapshot(
+    favoriteStocks: favoriteStocks,
+    watchlistSort: watchlistSort,
+    recentSearches: search.recentSearches,
+  );
 
   bool isFavorite(String stockId) => favoriteIds.contains(stockId);
 

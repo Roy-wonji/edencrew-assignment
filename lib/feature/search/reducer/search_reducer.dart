@@ -31,6 +31,7 @@ SearchState reduceSearch(SearchState state, SearchAction action) {
       return state.copyWith(
         phase: LoadPhase.loaded,
         resultIds: results.map((stock) => stock.id).toList(growable: false),
+        recentSearches: _updatedRecentSearches(state.recentSearches, query),
         clearErrorMessage: true,
       );
     case SearchFailed(:final requestId, :final query, :final message):
@@ -43,6 +44,17 @@ SearchState reduceSearch(SearchState state, SearchAction action) {
         errorMessage: message,
       );
   }
+}
+
+List<String> _updatedRecentSearches(List<String> current, String query) {
+  final trimmed = query.trim();
+  if (trimmed.isEmpty) {
+    return current;
+  }
+  return <String>[
+    trimmed,
+    ...current.where((value) => value != trimmed),
+  ].take(5).toList(growable: false);
 }
 
 bool _isCurrentSearchResponse(SearchState state, int requestId, String query) {

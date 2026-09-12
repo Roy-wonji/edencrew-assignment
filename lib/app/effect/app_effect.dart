@@ -1,3 +1,4 @@
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/domain/stock/entity/models.dart';
 
 sealed class AppEffect {
@@ -25,6 +26,20 @@ final class SearchStocksEffect extends AppEffect {
 
   final int requestId;
   final String query;
+}
+
+final class CancelSearchEffect extends AppEffect {
+  const CancelSearchEffect();
+}
+
+final class LoadPreferencesEffect extends AppEffect {
+  const LoadPreferencesEffect();
+}
+
+final class SavePreferencesEffect extends AppEffect {
+  const SavePreferencesEffect(this.snapshot);
+
+  final AppPreferencesSnapshot snapshot;
 }
 
 final class LoadDetailHistoryEffect extends AppEffect {

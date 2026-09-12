@@ -1,10 +1,17 @@
 import 'package:edencrew_assignment_starter/core/state/app_action.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/domain/stock/entity/models.dart';
 import 'package:edencrew_assignment_starter/feature/shared/state/app_tab.dart';
 import 'package:edencrew_assignment_starter/feature/shared/state/favorite_change_source.dart';
 
 final class AppStarted implements AppAction {
   const AppStarted();
+}
+
+final class PreferencesLoaded implements AppAction {
+  const PreferencesLoaded(this.snapshot);
+
+  final AppPreferencesSnapshot snapshot;
 }
 
 final class AppTabSelected implements AppAction {

@@ -1,4 +1,5 @@
 import 'package:edencrew_assignment_starter/app/effect/app_effect.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/core/state/app_action.dart';
 import 'package:edencrew_assignment_starter/core/time/scheduler.dart';
 import 'package:edencrew_assignment_starter/domain/stock/entity/models.dart';
@@ -13,19 +14,26 @@ final class AppEffectRunner {
   AppEffectRunner({
     required StockRepository repository,
     required AppScheduler scheduler,
+    AppPreferences preferences = const SharedPreferencesAppPreferences(),
     Duration noticeDuration = const Duration(seconds: 2),
+    Duration searchDebounceDuration = const Duration(milliseconds: 300),
     void Function(Object error)? debugErrorSink,
   }) : _repository = repository,
        _scheduler = scheduler,
+       _preferences = preferences,
        _noticeDuration = noticeDuration,
+       _searchDebounceDuration = searchDebounceDuration,
        _debugErrorSink = debugErrorSink;
 
   final StockRepository _repository;
   final AppScheduler _scheduler;
+  final AppPreferences _preferences;
   final Duration _noticeDuration;
+  final Duration _searchDebounceDuration;
   final void Function(Object error)? _debugErrorSink;
 
   CancelableTask? _noticeTask;
+  CancelableTask? _searchTask;
   _DetailCancellation? _detailCancellation;
   bool _isDisposed = false;
 
@@ -40,7 +48,13 @@ final class AppEffectRunner {
       case LoadMetadataEffect(:final symbol):
         _loadMetadata(symbol, dispatch);
       case SearchStocksEffect(:final requestId, :final query):
-        _search(requestId, query, dispatch);
+        _debounceSearch(requestId, query, dispatch);
+      case CancelSearchEffect():
+        _cancelSearch();
+      case LoadPreferencesEffect():
+        _loadPreferences(dispatch);
+      case SavePreferencesEffect(:final snapshot):
+        _savePreferences(snapshot);
       case LoadDetailHistoryEffect(
         :final requestId,
         :final stock,
@@ -57,6 +71,7 @@ final class AppEffectRunner {
   Future<void> dispose() async {
     _isDisposed = true;
     _noticeTask?.cancel();
+    _searchTask?.cancel();
     _detailCancellation?.cancel();
     _scheduler.dispose();
     await _repository.close();
@@ -129,6 +144,40 @@ final class AppEffectRunner {
           message: '검색 결과를 불러오지 못했습니다. 다시 시도해 주세요.',
         ),
       );
+    }
+  }
+
+  void _debounceSearch(int requestId, String query, AppDispatch dispatch) {
+    _searchTask?.cancel();
+    if (_searchDebounceDuration == Duration.zero) {
+      _search(requestId, query, dispatch);
+      return;
+    }
+    _searchTask = _scheduler.schedule(
+      _searchDebounceDuration,
+      () => _search(requestId, query, dispatch),
+    );
+  }
+
+  void _cancelSearch() {
+    _searchTask?.cancel();
+    _searchTask = null;
+  }
+
+  Future<void> _loadPreferences(AppDispatch dispatch) async {
+    try {
+      final snapshot = await _preferences.load();
+      _dispatchIfAlive(dispatch, PreferencesLoaded(snapshot));
+    } on Object catch (error) {
+      _debugLog(error);
+    }
+  }
+
+  Future<void> _savePreferences(AppPreferencesSnapshot snapshot) async {
+    try {
+      await _preferences.save(snapshot);
+    } on Object catch (error) {
+      _debugLog(error);
     }
   }
 

@@ -57,6 +57,8 @@ class EdencrewAssignmentApp extends StatelessWidget {
                   ),
                   onPeriod: (period) =>
                       store.dispatch(DetailPeriodSelected(period)),
+                  onLoadMoreDailyPrices: () =>
+                      store.dispatch(const DetailDailyPricesMoreRequested()),
                   onRetryQuote: () => store.dispatch(
                     DetailOpened(
                       store.state.stocksById[store.state.detail.stockId]!,
@@ -108,6 +110,12 @@ class _Home extends StatelessWidget {
                         onSort: (sort) =>
                             store.dispatch(WatchlistSortSelected(sort)),
                         onOpen: (stock) => store.dispatch(DetailOpened(stock)),
+                        onRemove: (stock) => store.dispatch(
+                          FavoriteToggled(
+                            stock,
+                            source: FavoriteChangeSource.watchlist,
+                          ),
+                        ),
                       ),
                       SearchScreen(
                         state: state.search,
