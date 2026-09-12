@@ -21,6 +21,10 @@ final class DetailPeriodSelected extends DetailAction {
   final ChartPeriod period;
 }
 
+final class DetailDailyPricesMoreRequested extends DetailAction {
+  const DetailDailyPricesMoreRequested();
+}
+
 final class DetailHistoryUpdated extends DetailAction {
   const DetailHistoryUpdated({
     required this.requestId,

@@ -1,6 +1,8 @@
 import 'package:edencrew_assignment_starter/domain/stock/entity/models.dart';
 import 'package:edencrew_assignment_starter/feature/shared/state/load_phase.dart';
 
+const detailDailyPricePageSize = 20;
+
 final class DetailState {
   const DetailState({
     this.stockId,
@@ -8,6 +10,7 @@ final class DetailState {
     this.phase = LoadPhase.idle,
     this.requestId = 0,
     this.prices = const <DailyPrice>[],
+    this.visibleDailyPriceCount = detailDailyPricePageSize,
     this.errorMessage,
   });
 
@@ -16,9 +19,13 @@ final class DetailState {
   final LoadPhase phase;
   final int requestId;
   final List<DailyPrice> prices;
+  final int visibleDailyPriceCount;
   final String? errorMessage;
 
   bool get isOpen => stockId != null;
+  bool get hasMoreDailyPrices => visibleDailyPriceCount < prices.length;
+  List<DailyPrice> get visibleDailyPrices =>
+      prices.take(visibleDailyPriceCount).toList(growable: false);
 
   DetailState copyWith({
     String? stockId,
@@ -26,6 +33,7 @@ final class DetailState {
     LoadPhase? phase,
     int? requestId,
     List<DailyPrice>? prices,
+    int? visibleDailyPriceCount,
     String? errorMessage,
     bool clearStock = false,
     bool clearErrorMessage = false,
@@ -36,6 +44,8 @@ final class DetailState {
       phase: phase ?? this.phase,
       requestId: requestId ?? this.requestId,
       prices: List<DailyPrice>.unmodifiable(prices ?? this.prices),
+      visibleDailyPriceCount:
+          visibleDailyPriceCount ?? this.visibleDailyPriceCount,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,

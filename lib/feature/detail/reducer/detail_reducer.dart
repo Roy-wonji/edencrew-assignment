@@ -15,12 +15,14 @@ DetailState reduceDetail(DetailState state, DetailAction action) {
         phase: LoadPhase.loading,
         requestId: state.requestId + 1,
         prices: const <DailyPrice>[],
+        visibleDailyPriceCount: detailDailyPricePageSize,
         clearErrorMessage: true,
       );
     case DetailClosed():
       return state.copyWith(
         phase: LoadPhase.idle,
         prices: const <DailyPrice>[],
+        visibleDailyPriceCount: detailDailyPricePageSize,
         clearStock: true,
         clearErrorMessage: true,
       );
@@ -33,7 +35,16 @@ DetailState reduceDetail(DetailState state, DetailAction action) {
         phase: LoadPhase.loading,
         requestId: state.requestId + 1,
         prices: const <DailyPrice>[],
+        visibleDailyPriceCount: detailDailyPricePageSize,
         clearErrorMessage: true,
+      );
+    case DetailDailyPricesMoreRequested():
+      if (state.stockId == null || !state.hasMoreDailyPrices) {
+        return state;
+      }
+      return state.copyWith(
+        visibleDailyPriceCount:
+            state.visibleDailyPriceCount + detailDailyPricePageSize,
       );
     case DetailHistoryUpdated(
       :final requestId,

@@ -20,6 +20,7 @@ class DetailScreen extends StatelessWidget {
     required this.onBack,
     required this.onFavorite,
     required this.onPeriod,
+    required this.onLoadMoreDailyPrices,
     required this.onRetryQuote,
     this.quoteError,
   });
@@ -33,6 +34,7 @@ class DetailScreen extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onFavorite;
   final ValueChanged<ChartPeriod> onPeriod;
+  final VoidCallback onLoadMoreDailyPrices;
   final VoidCallback onRetryQuote;
 
   @override
@@ -53,57 +55,74 @@ class DetailScreen extends StatelessWidget {
               onFavorite: onFavorite,
             ),
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  const SizedBox(height: 14),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _CurrentPrice(
-                      quote: quote,
-                      quoteLoading: quoteLoading,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.metrics.extentAfter < 160 &&
+                      detail.hasMoreDailyPrices) {
+                    onLoadMoreDailyPrices();
+                  }
+                  return false;
+                },
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    const SizedBox(height: 14),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _CurrentPrice(
+                        quote: quote,
+                        quoteLoading: quoteLoading,
+                      ),
                     ),
-                  ),
-                  if (quoteError != null)
-                    ErrorNotice(message: quoteError!, retry: onRetryQuote),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _PeriodTabs(
-                      selected: detail.period,
-                      onPeriod: onPeriod,
+                    if (quoteError != null)
+                      ErrorNotice(message: quoteError!, retry: onRetryQuote),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _PeriodTabs(
+                        selected: detail.period,
+                        onPeriod: onPeriod,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (detail.phase == LoadPhase.loading ||
-                      detail.phase == LoadPhase.refreshing)
-                    LinearProgressIndicator(
-                      minHeight: 2,
-                      color: context.colors.accentDefault,
-                      backgroundColor: context.colors.surfaceRaised,
+                    const SizedBox(height: 16),
+                    if (detail.phase == LoadPhase.loading ||
+                        detail.phase == LoadPhase.refreshing)
+                      LinearProgressIndicator(
+                        minHeight: 2,
+                        color: context.colors.accentDefault,
+                        backgroundColor: context.colors.surfaceRaised,
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _ChartPanel(
+                        stockId: stock.id,
+                        prices: prices,
+                        phase: detail.phase,
+                        errorMessage: detail.errorMessage,
+                        onRetry: () => onPeriod(detail.period),
+                      ),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _ChartPanel(
-                      stockId: stock.id,
-                      prices: prices,
-                      phase: detail.phase,
-                      errorMessage: detail.errorMessage,
-                      onRetry: () => onPeriod(detail.period),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _QuoteSummary(quote: quote),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _QuoteSummary(quote: quote),
-                  ),
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _DailyPrices(prices: prices),
-                  ),
-                  const SizedBox(height: 22),
-                ],
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _DailyPrices(
+                        prices: prices
+                            .take(detail.visibleDailyPriceCount)
+                            .toList(growable: false),
+                        hasMore: detail.hasMoreDailyPrices,
+                        loadingMore:
+                            detail.phase == LoadPhase.loading &&
+                            !detail.hasMoreDailyPrices,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                  ],
+                ),
               ),
             ),
           ],
@@ -619,9 +638,15 @@ class _Metric extends StatelessWidget {
 }
 
 class _DailyPrices extends StatelessWidget {
-  const _DailyPrices({required this.prices});
+  const _DailyPrices({
+    required this.prices,
+    required this.hasMore,
+    required this.loadingMore,
+  });
 
   final List<DailyPrice> prices;
+  final bool hasMore;
+  final bool loadingMore;
 
   @override
   Widget build(BuildContext context) {
@@ -653,6 +678,31 @@ class _DailyPrices extends StatelessWidget {
             ],
             change: price.change,
           ),
+        if (hasMore || loadingMore) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 28,
+            child: Center(
+              child: loadingMore
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: context.colors.accentDefault,
+                      ),
+                    )
+                  : Text(
+                      '아래로 스크롤하면 더 표시됩니다',
+                      style: TextStyle(
+                        color: context.colors.textTertiary,
+                        fontSize: 11,
+                        height: 14 / 11,
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ],
     );
   }
