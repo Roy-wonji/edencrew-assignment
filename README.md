@@ -25,19 +25,16 @@
 ### 선택 및 추가 구현
 
 - 검색 중 진행 표시와 결과 스켈레톤, 검색 결과 전환 애니메이션
+- 검색 입력 debounce와 최근 검색어
+- 관심 목록 Pull to refresh, 관심종목 삭제, 정렬 기준 저장
+- 앱 재실행 후 관심 목록·정렬·최근 검색어 유지
 - 기간 변경 중 기존 차트를 유지하는 차트 전환 애니메이션
+- 차트 축 라벨, 거래량 바, 영역 채우기, 크로스헤어와 툴팁
+- 일별 시세 무한 스크롤
 - 일봉 페이지 캐시, 중복 요청 제거, 날짜 변경 시 캐시 무효화
 - 네트워크 오류 재시도와 오래된 요청 결과 무시
 - 토스트 자동 종료와 연속 표시 시 이전 타이머 취소
-- 상태 전환·파싱·화면 레이아웃을 검증하는 Flutter 테스트 40개
-
-### 구현하지 않은 선택 항목
-
-- 관심 목록 Pull to refresh, 관심종목 삭제, 정렬 기준 저장
-- 검색 입력 debounce와 최근 검색어
-- 차트 축 라벨·거래량 바·영역 채우기·크로스헤어·툴팁
-- 일별 시세 무한 스크롤
-- 앱 재실행 후 관심 목록 유지
+- 상태 전환·파싱·화면 레이아웃을 검증하는 Flutter 테스트 44개
 
 ### 별도 제출물
 
@@ -57,7 +54,7 @@
 
 ## 검증
 
-Flutter 테스트 40개와 `flutter analyze`를 통과했고, `flutter build macos --debug`, `flutter build ios --simulator --debug`, `flutter build apk --debug`가 모두 성공했습니다. 393×852 기준 관심·검색·상세 및 빈 상태·정렬·토스트 렌더링을 확인했습니다. 실제 Naver 응답 샘플은 `assets/mock`에 보관했습니다.
+Flutter 테스트 44개와 `flutter analyze`를 통과했고, `flutter build macos --debug`, `flutter build ios --simulator --debug`, `flutter build apk --debug`가 모두 성공했습니다. 393×852 기준 관심·검색·상세 및 빈 상태·정렬·토스트 렌더링을 확인했습니다. 실제 Naver 응답 샘플은 `assets/mock`에 보관했습니다.
 
 ## 디자인 토큰 사용 방식
 
@@ -106,4 +103,4 @@ flowchart TD
     Shared --> Theme
 ```
 
-`get_it`은 앱 조립 시점의 의존성 주입에만 사용합니다. View와 Reducer는 컨테이너를 직접 조회하지 않으며, 테스트에서는 Repository와 시간을 가짜 구현으로 교체할 수 있습니다.
+`get_it`은 앱 조립 시점의 의존성 주입에만 사용합니다. View와 Reducer는 컨테이너를 직접 조회하지 않으며, 테스트에서는 Repository, 시간, 로컬 저장소를 가짜 구현으로 교체할 수 있습니다.
