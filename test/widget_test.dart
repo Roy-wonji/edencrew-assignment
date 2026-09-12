@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:edencrew_assignment_starter/app/view/app.dart';
 import 'package:edencrew_assignment_starter/app/bootstrap.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/feature/detail/view/candle_chart.dart';
 import 'support/immediate_stock_repository.dart';
 
@@ -13,6 +14,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final composition = bootstrapApp(
       stockRepository: ImmediateStockRepository(),
+      preferences: MemoryAppPreferences(),
     );
     addTearDown(composition.dispose);
     await tester.pumpWidget(EdencrewAssignmentApp(store: composition.store));
@@ -53,6 +55,7 @@ void main() {
   testWidgets('시스템 뒤로가기는 상세 화면만 닫고 홈을 유지한다', (tester) async {
     final composition = bootstrapApp(
       stockRepository: ImmediateStockRepository(),
+      preferences: MemoryAppPreferences(),
     );
     addTearDown(composition.dispose);
     await tester.pumpWidget(EdencrewAssignmentApp(store: composition.store));
@@ -77,6 +80,7 @@ void main() {
   testWidgets('검색 결과 없음에서 지우면 초기 상태로 돌아간다', (tester) async {
     final composition = bootstrapApp(
       stockRepository: ImmediateStockRepository(),
+      preferences: MemoryAppPreferences(),
     );
     addTearDown(composition.dispose);
     await tester.pumpWidget(EdencrewAssignmentApp(store: composition.store));
@@ -87,7 +91,8 @@ void main() {
     expect(find.text('검색 결과가 없습니다'), findsOneWidget);
     await tester.tap(find.byTooltip('검색어 지우기'));
     await tester.pumpAndSettle();
-    expect(find.text('종목을 검색해 보세요'), findsOneWidget);
+    expect(find.text('최근 검색어'), findsOneWidget);
+    expect(find.text('없음'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

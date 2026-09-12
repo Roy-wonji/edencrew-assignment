@@ -6,6 +6,7 @@ import 'package:edencrew_assignment_starter/app/action/app_action.dart';
 import 'package:edencrew_assignment_starter/app/store/app_store.dart';
 import 'package:edencrew_assignment_starter/app/reducer/app_reducer.dart';
 import 'package:edencrew_assignment_starter/app/effect/effect_runner.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/core/time/scheduler.dart';
 import 'package:edencrew_assignment_starter/feature/search/reducer/search_reducer.dart';
 import 'package:edencrew_assignment_starter/feature/detail/reducer/detail_reducer.dart';
@@ -22,8 +23,14 @@ void main() {
     () async {
       final firstRepo = _Repository();
       final secondRepo = _Repository();
-      final first = bootstrapApp(stockRepository: firstRepo);
-      final second = bootstrapApp(stockRepository: secondRepo);
+      final first = bootstrapApp(
+        stockRepository: firstRepo,
+        preferences: MemoryAppPreferences(),
+      );
+      final second = bootstrapApp(
+        stockRepository: secondRepo,
+        preferences: MemoryAppPreferences(),
+      );
       first.store.dispatch(const WatchlistSortSelected(WatchlistSort.name));
       expect(second.store.state.watchlistSort, WatchlistSort.currentPrice);
       expect(GetIt.instance.isRegistered<AppStore>(), isFalse);
@@ -42,7 +49,10 @@ void main() {
   test('composition awaits repository close exactly once', () async {
     final gate = Completer<void>();
     final repo = _Repository(closeGate: gate);
-    final app = bootstrapApp(stockRepository: repo);
+    final app = bootstrapApp(
+      stockRepository: repo,
+      preferences: MemoryAppPreferences(),
+    );
     var finished = false;
     final closing = app.dispose().then((_) => finished = true);
     final duplicate = app.dispose();
@@ -73,6 +83,7 @@ void main() {
       effectRunner: AppEffectRunner(
         repository: repo,
         scheduler: container<AppScheduler>(),
+        preferences: MemoryAppPreferences(),
       ),
       reducer: ComposedAppReducer(
         search: container<SearchReducer>(),

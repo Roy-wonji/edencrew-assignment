@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:edencrew_assignment_starter/app/view/app.dart';
 import 'package:edencrew_assignment_starter/app/bootstrap.dart';
 import 'package:edencrew_assignment_starter/app/action/app_action.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/feature/shared/state/app_tab.dart';
 import 'package:edencrew_assignment_starter/feature/shared/state/favorite_change_source.dart';
 import 'support/immediate_stock_repository.dart';
@@ -34,6 +35,7 @@ void main() {
     addTearDown(tester.view.reset);
     final composition = bootstrapApp(
       stockRepository: ImmediateStockRepository(),
+      preferences: MemoryAppPreferences(),
     );
     addTearDown(composition.dispose);
     final key = GlobalKey();

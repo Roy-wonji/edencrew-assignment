@@ -7,6 +7,7 @@ import 'package:edencrew_assignment_starter/app/effect/effect_runner.dart';
 import 'package:edencrew_assignment_starter/app/reducer/app_reducer.dart';
 import 'package:edencrew_assignment_starter/app/state/app_state.dart';
 import 'package:edencrew_assignment_starter/app/store/app_store.dart';
+import 'package:edencrew_assignment_starter/core/storage/app_preferences.dart';
 import 'package:edencrew_assignment_starter/core/time/scheduler.dart';
 import 'package:edencrew_assignment_starter/domain/stock/entity/models.dart';
 import 'package:edencrew_assignment_starter/domain/stock/interface/stock_repository.dart';
@@ -31,6 +32,52 @@ void main() {
     await _flush();
     expect(store.state.search.query, '카');
     expect(store.state.searchResults, <Stock>[_kakao]);
+  });
+
+  test('search is debounced and recent searches are persisted', () async {
+    final repository = FakeStockRepository();
+    final scheduler = FakeScheduler();
+    final preferences = MemoryAppPreferences();
+    final store = _createStore(
+      repository,
+      scheduler: scheduler,
+      preferences: preferences,
+      searchDebounceDuration: const Duration(milliseconds: 300),
+    );
+
+    store.dispatch(const SearchQueryChanged('삼'));
+    store.dispatch(const SearchQueryChanged('삼성'));
+    expect(repository.searchCompleters, isEmpty);
+
+    scheduler.triggerLast();
+    expect(repository.searchCompleters.keys, <String>['삼성']);
+
+    repository.completeSearch('삼성', <Stock>[_samsung]);
+    await _flush();
+    await _flush();
+
+    expect(store.state.search.recentSearches, <String>['삼성']);
+    expect(preferences.snapshot.recentSearches, <String>['삼성']);
+  });
+
+  test('preferences hydrate favorites, sort and recent searches', () async {
+    final repository = FakeStockRepository();
+    final preferences = MemoryAppPreferences(
+      const AppPreferencesSnapshot(
+        favoriteStocks: <Stock>[_samsung],
+        watchlistSort: WatchlistSort.name,
+        recentSearches: <String>['카카오'],
+      ),
+    );
+    final store = _createStore(repository, preferences: preferences);
+
+    store.dispatch(const AppStarted());
+    await _flush();
+
+    expect(store.state.favoriteStocks, <Stock>[_samsung]);
+    expect(store.state.watchlistSort, WatchlistSort.name);
+    expect(store.state.search.recentSearches, <String>['카카오']);
+    expect(repository.quoteCalls.single, <String>[_samsung.symbol]);
   });
 
   test(
@@ -332,6 +379,64 @@ void main() {
     expect(store.state.detail.prices, hasLength(2));
   });
 
+  test(
+    'detail daily prices reveal more rows on bottom pagination request',
+    () async {
+      final repository = FakeStockRepository();
+      final store = _createStore(repository);
+      final prices = List<DailyPrice>.generate(
+        45,
+        (index) => _daily(
+          DateTime(2026, 9, 10).subtract(Duration(days: index)),
+          close: 70000 - index,
+        ),
+      );
+
+      store.dispatch(const DetailOpened(_samsung));
+      repository.emitHistory(_samsung.symbol, ChartPeriod.month1, prices);
+      await _flush();
+
+      expect(store.state.detail.visibleDailyPrices, hasLength(20));
+      expect(store.state.detail.hasMoreDailyPrices, isTrue);
+
+      store.dispatch(const DetailDailyPricesMoreRequested());
+      expect(store.state.detail.visibleDailyPrices, hasLength(40));
+      expect(store.state.detail.hasMoreDailyPrices, isTrue);
+
+      store.dispatch(const DetailDailyPricesMoreRequested());
+      expect(store.state.detail.visibleDailyPrices, hasLength(45));
+      expect(store.state.detail.hasMoreDailyPrices, isFalse);
+    },
+  );
+
+  test(
+    'detail daily pagination resets when the selected period changes',
+    () async {
+      final repository = FakeStockRepository();
+      final store = _createStore(repository);
+      final prices = List<DailyPrice>.generate(
+        45,
+        (index) => _daily(
+          DateTime(2026, 9, 10).subtract(Duration(days: index)),
+          close: 70000 - index,
+        ),
+      );
+
+      store.dispatch(const DetailOpened(_samsung));
+      repository.emitHistory(_samsung.symbol, ChartPeriod.month1, prices);
+      await _flush();
+      store.dispatch(const DetailDailyPricesMoreRequested());
+      expect(store.state.detail.visibleDailyPrices, hasLength(40));
+
+      store.dispatch(const DetailPeriodSelected(ChartPeriod.month3));
+      repository.emitHistory(_samsung.symbol, ChartPeriod.month3, prices);
+      await _flush();
+
+      expect(store.state.detail.period, ChartPeriod.month3);
+      expect(store.state.detail.visibleDailyPrices, hasLength(20));
+    },
+  );
+
   test('closing detail cancels active history loading immediately', () async {
     final repository = FakeStockRepository();
     final store = _createStore(repository);
@@ -356,7 +461,10 @@ void main() {
     'bootstrap wires store and disposes repository through composition',
     () async {
       final repository = FakeStockRepository();
-      final composition = bootstrapApp(stockRepository: repository);
+      final composition = bootstrapApp(
+        stockRepository: repository,
+        preferences: MemoryAppPreferences(),
+      );
 
       expect(composition.store.state.selectedTab, AppTab.watchlist);
       composition.dispose();
@@ -369,12 +477,16 @@ void main() {
 AppStore _createStore(
   FakeStockRepository repository, {
   FakeScheduler? scheduler,
+  AppPreferences? preferences,
+  Duration searchDebounceDuration = Duration.zero,
 }) {
   return AppStore(
     effectRunner: AppEffectRunner(
       repository: repository,
       scheduler: scheduler ?? FakeScheduler(),
       noticeDuration: Duration.zero,
+      preferences: preferences ?? MemoryAppPreferences(),
+      searchDebounceDuration: searchDebounceDuration,
     ),
   );
 }
@@ -514,6 +626,10 @@ final class FakeScheduler implements AppScheduler {
 
   void trigger(int id) {
     _tasks[id]?.trigger();
+  }
+
+  void triggerLast() {
+    _tasks[_tasks.keys.last]?.trigger();
   }
 
   @override

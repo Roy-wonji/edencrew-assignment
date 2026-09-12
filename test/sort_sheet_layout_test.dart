@@ -25,6 +25,7 @@ void main() {
             onRefresh: () {},
             onSort: (_) {},
             onOpen: (_) {},
+            onRemove: (_) {},
           ),
         ),
       ),
