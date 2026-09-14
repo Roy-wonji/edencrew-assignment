@@ -62,6 +62,8 @@ Flutter 테스트 44개와 `flutter analyze`를 통과했고, `flutter build mac
 
 스켈레톤은 시세 요청 중인 종목 코드만 상태에 기록하고, 해당 행의 실제 값 영역을 `QuoteSkeleton`으로 대체합니다. 상세 화면도 같은 상태를 사용해 현재가 영역에 동일한 스켈레톤을 표시하므로 로딩 표현이 화면마다 달라지지 않습니다.
 
+등락 색상은 `changeColor()` 한 곳에서 `priceUpText` / `priceDownText` / `priceFlatText` 세 가지를 모두 분기해 상승·하락·보합을 처리합니다. 반면 `priceUpBg` / `priceDownBg` / `priceFlatBg` 배경 토큰은 시안의 세 화면에서 등락이 배경 없는 텍스트로만 표기되어 적용할 자리가 없었습니다. 배지 배경을 임의로 추가하면 시안과 달라지므로 텍스트 색상만 사용했고, `priceDownBg`는 관심 목록의 스와이프 삭제 배경에 재사용했습니다.
+
 ## 아키텍처
 
 `View → Action → Reducer → State → View` 단방향 흐름을 사용합니다. `AppStore`가 관심·검색·상세 상태를 함께 보유하고, 각 기능의 Reducer는 자신의 상태 전환만 담당합니다. 네트워크 요청과 타이머는 `EffectRunner`가 실행합니다.
